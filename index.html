@@ -697,12 +697,20 @@
       box-shadow:0 8px 18px rgba(69,22,30,.24);
       margin-bottom:16px;
     }
+    .posted-media.openable{
+      cursor:zoom-in;
+    }
+    .posted-media.openable:hover img{
+      transform:scale(1.045);
+      filter:brightness(1.06);
+    }
     .posted-media img,
     .posted-media video{
       width:100%;
       height:100%;
       object-fit:cover;
       display:block;
+      transition:transform .28s ease, filter .28s ease;
     }
     .posted-media.empty{
       display:grid;
@@ -710,7 +718,11 @@
       color:#fff2c8;
       font-family:"Brush Script MT","Lucida Handwriting",Georgia,serif;
       font-size:34px;
+      line-height:1.08;
+      text-align:center;
+      padding:18px;
       text-shadow:0 0 16px rgba(255,255,255,.28);
+      overflow-wrap:anywhere;
     }
     .posted-card h3{
       margin:4px 0 2px;
@@ -729,14 +741,6 @@
       line-height:1.6;
       font-size:16px;
       text-align:center;
-      overflow-wrap:anywhere;
-    }
-    .posted-card .file-note{
-      margin-top:10px;
-      color:#9d6d32;
-      font-size:12px;
-      text-align:center;
-      font-family:Georgia,"Times New Roman",serif;
       overflow-wrap:anywhere;
     }
     .komal-reply{
@@ -1191,6 +1195,24 @@
       color:#ffadc2;
       font-family:Georgia,"Times New Roman",serif;
       font-size:13px;
+    }
+    .image-dialog{
+      width:min(920px,calc(100vw - 28px));
+      max-height:calc(100svh - 36px);
+      padding:14px;
+      border-radius:10px;
+    }
+    .image-dialog img{
+      display:block;
+      width:100%;
+      max-height:calc(100svh - 112px);
+      object-fit:contain;
+      border-radius:6px;
+      background:rgba(0,0,0,.22);
+      box-shadow:0 16px 52px rgba(0,0,0,.4);
+    }
+    .image-dialog .theme-actions{
+      margin-top:12px;
     }
     .login-shell{
       width:min(520px,90vw);
@@ -2013,6 +2035,7 @@
   <div class="password-screen hide" id="loginScreen"><div class="login-shell"><div class="login-title"></div><div class="login"><h3>Admin Sign In</h3><p>Enter your admin credentials.</p><input id="username" type="text" placeholder="Username" autocomplete="username"><input id="password" type="password" placeholder="Password" autocomplete="current-password"><button class="mini" id="loginBtn">Sign In</button><div class="error" id="loginError"></div><p class="note">Username: <b>ADMIN</b> Password: <b>1234</b></p></div></div></div>
   <div class="theme-modal hide" id="passwordModal"><div class="theme-dialog"><h3>Password Please</h3><p id="passwordModalText">Enter admin password to continue.</p><input id="passwordModalInput" type="password" placeholder="Admin password"><div class="theme-actions"><button class="mini" id="passwordModalCancel" type="button">Cancel</button><button class="mini" id="passwordModalConfirm" type="button">Confirm</button></div><div class="theme-error" id="passwordModalError"></div></div></div>
   <div class="theme-modal hide" id="textModal"><div class="theme-dialog"><h3 id="textModalTitle">Edit Reply</h3><p id="textModalText">Update Komal's reply.</p><textarea id="textModalInput" placeholder="Write here"></textarea><div class="theme-actions"><button class="mini" id="textModalCancel" type="button">Cancel</button><button class="mini" id="textModalConfirm" type="button">Save</button></div></div></div>
+  <div class="theme-modal hide" id="imageModal"><div class="theme-dialog image-dialog"><img id="imageModalImg" alt=""><div class="theme-actions"><button class="mini" id="imageModalClose" type="button">Close</button></div></div></div>
   <audio id="siteSong" src="AUD-20260604-WA0001.mp3" loop preload="auto" playsinline></audio>
   <script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore-compat.js"></script>
@@ -2100,7 +2123,7 @@
     document.querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>showPage(el.dataset.page));
     document.querySelectorAll('[data-gateway]').forEach(el=>el.onclick=showGateway);
     async function showPage(id){primeSongPlayback();if(id==='kv57'&&!document.getElementById(id).classList.contains('active-page')){if(!await askAdminPassword('Enter admin password to open KV57.'))return}if(id==='admin'&&!sessionStorage.getItem('adminOK')){document.getElementById('loginScreen').classList.remove('hide');username.value='';password.value='';loginError.textContent='';setTimeout(()=>username.focus(),50);return}document.body.classList.toggle('admin-open',id==='admin');document.querySelectorAll('.page').forEach(p=>p.classList.remove('active-page'));document.getElementById(id).classList.add('active-page');document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page===id));document.querySelectorAll('[data-gateway]').forEach(a=>a.classList.remove('active'));}
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!passwordModal.classList.contains('hide')){passwordModalCancel.click();return}if(!textModal.classList.contains('hide')){textModalCancel.click();return}if(!loginScreen.classList.contains('hide')){loginScreen.classList.add('hide');return}const openMessage=document.querySelector('.active-page .message-box.open');if(openMessage){openMessage.classList.remove('open');return}const openAdmin=document.querySelector('#admin.active-page .admin-item.open');if(openAdmin){openAdmin.classList.remove('open');const sign=openAdmin.querySelector('.admin-head span');if(sign)sign.textContent='+';return}if(document.getElementById('admin').classList.contains('active-page')){sessionStorage.removeItem('adminOK');document.body.classList.remove('admin-open');showPage('home')}}});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!imageModal.classList.contains('hide')){closeImageModal();return}if(!passwordModal.classList.contains('hide')){passwordModalCancel.click();return}if(!textModal.classList.contains('hide')){textModalCancel.click();return}if(!loginScreen.classList.contains('hide')){loginScreen.classList.add('hide');return}const openMessage=document.querySelector('.active-page .message-box.open');if(openMessage){openMessage.classList.remove('open');return}const openAdmin=document.querySelector('#admin.active-page .admin-item.open');if(openAdmin){openAdmin.classList.remove('open');const sign=openAdmin.querySelector('.admin-head span');if(sign)sign.textContent='+';return}if(document.getElementById('admin').classList.contains('active-page')){sessionStorage.removeItem('adminOK');document.body.classList.remove('admin-open');showPage('home')}}});
     const pageKeys=['letters','memory','kv'];
     function escapeHTML(value){return String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
     function compressImage(dataUrl,file,max=1100,quality=.76){return new Promise(resolve=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,max/Math.max(img.width,img.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);resolve({file:file.name,mediaData:canvas.toDataURL('image/jpeg',quality),mediaType:'image/jpeg'})};img.onerror=()=>resolve({file:file.name,mediaData:'',mediaType:file.type||''});img.src=dataUrl})}
@@ -2134,6 +2157,9 @@
     setSongStartPoint();
     function askAdminPassword(message){return new Promise(resolve=>{passwordModal.classList.remove('hide');passwordModalText.textContent=message||'Enter admin password to continue.';passwordModalInput.value='';passwordModalError.textContent='';setTimeout(()=>passwordModalInput.focus(),40);const close=answer=>{passwordModal.classList.add('hide');passwordModalConfirm.onclick=null;passwordModalCancel.onclick=null;passwordModalInput.onkeydown=null;resolve(answer)};passwordModalCancel.onclick=()=>close(false);passwordModalConfirm.onclick=()=>{if(passwordModalInput.value===(data.password||'1234'))close(true);else{passwordModalError.textContent='Wrong password.';passwordModalInput.select()}};passwordModalInput.onkeydown=e=>{if(e.key==='Enter')passwordModalConfirm.click();if(e.key==='Escape')close(false)}})}
     function askText(title,message,value=''){return new Promise(resolve=>{textModal.classList.remove('hide');textModalTitle.textContent=title;textModalText.textContent=message;textModalInput.value=value;setTimeout(()=>textModalInput.focus(),40);const close=answer=>{textModal.classList.add('hide');textModalConfirm.onclick=null;textModalCancel.onclick=null;textModalInput.onkeydown=null;resolve(answer)};textModalCancel.onclick=()=>close(null);textModalConfirm.onclick=()=>close(textModalInput.value);textModalInput.onkeydown=e=>{if(e.key==='Escape')close(null)}})}
+    function openImageModal(src,alt=''){imageModalImg.src=src;imageModalImg.alt=alt;imageModal.classList.remove('hide')}
+    function closeImageModal(){imageModal.classList.add('hide');imageModalImg.removeAttribute('src');imageModalImg.alt=''}
+    imageModalClose.onclick=closeImageModal;imageModal.onclick=e=>{if(e.target===imageModal)closeImageModal()};
     function persistPosts(){window.data=data;try{localStorage.setItem('komalSiteData',JSON.stringify(data))}catch(err){console.warn('Local post save failed.',err);return false}if(siteDoc)siteDoc.set({posts:data.posts},{merge:true}).catch(err=>console.warn('Firebase posts save failed. Local copy saved.',err));return true}
     async function storePostWithAutoCompression(key,post,file){data.posts[key].unshift(post);if(persistPosts())return 'Message posted.';if(file&&String(file.type||'').startsWith('image')){const attempts=[[760,.62],[520,.5],[360,.44]];for(const [max,quality] of attempts){const smaller=await readAttachment(file,max,quality);post.mediaData=smaller?.mediaData||'';post.mediaType=smaller?.mediaType||'';post.file=smaller?.file||post.file;if(persistPosts())return 'Message posted.'}}post.mediaData='';post.mediaType='';if(persistPosts())return 'Message posted.';data.posts[key].shift();return 'Could not save. Try deleting old posts or posting without a file.'}
     window.deletePost=async function(key,index){if(!await askAdminPassword('Enter admin password to delete this message.'))return;data.posts[key].splice(index,1);persistPosts();renderPosts()}
@@ -2145,7 +2171,8 @@
     function nextJune5(){const now=new Date();let y=now.getFullYear();let target=new Date(y,5,5,0,0,0);if(now>=target)target=new Date(y+1,5,5,0,0,0);return target}function tick(){let d=nextJune5()-new Date();days.textContent=String(Math.floor(d/86400000)).padStart(2,'0');hours.textContent=String(Math.floor(d/3600000)%24).padStart(2,'0');minutes.textContent=String(Math.floor(d/60000)%60).padStart(2,'0');seconds.textContent=String(Math.floor(d/1000)%60).padStart(2,'0')}setInterval(tick,1000);tick();
     function cards(id,arr,photo=false){document.getElementById(id).innerHTML=arr.map(x=>`<div class="card">${photo?'<div class="photo-slot">Add your photo here</div>':''}<h3>${x[0]}</h3><p>${x[1]}</p></div>`).join('')}
     function renderPageSettings(){['letters','memory','kv'].forEach(key=>{const sectionId=key==='kv'?'kv57':key;const section=document.getElementById(sectionId);if(!section)return;const tagline=section.querySelector('.page-tagline');const toggle=section.querySelector('.post-toggle');const boxTitle=section.querySelector('.message-box h3');if(tagline)tagline.textContent=data.taglines[key]||defaultData.taglines[key];if(toggle)toggle.textContent=data.postText[key]||defaultData.postText[key];if(boxTitle)boxTitle.textContent=data.postTitles[key]||defaultData.postTitles[key]})}
-    function renderPosts(){pageKeys.forEach(key=>{const el=document.getElementById(key+'Posts');if(!el)return;el.innerHTML=(data.posts[key]||[]).map((post,index)=>{const media=post.mediaData?`<div class="posted-media">${String(post.mediaType||'').startsWith('video')?`<video src="${post.mediaData}" controls></video>`:`<img src="${post.mediaData}" alt="${escapeHTML(post.file||post.name)}">`}</div>`:'<div class="posted-media empty">Love Note</div>';const reply=post.komalReply?`<div class="komal-reply"><div class="komal-reply-label">Komal's Reply</div><div class="komal-reply-text">${escapeHTML(post.komalReply)}</div><button class="reply-send" type="button" onclick="editKomalReply('${key}',${index})">EDIT</button> <button class="reply-send" type="button" onclick="deleteKomalReply('${key}',${index})">DELETE</button></div>`:`<div class="komal-reply"><div class="komal-reply-label">Komal's Reply</div><textarea class="reply-input" data-reply-input="${key}-${index}" placeholder="Write a reply for this message"></textarea><button class="reply-send" type="button" onclick="sendKomalReply('${key}',${index})">SEND</button></div>`;return `<article class="posted-card"><div class="posted-actions"><button class="post-action" type="button" onclick="deletePost('${key}',${index})">Delete</button></div>${media}<h3>${escapeHTML(post.name)}</h3><p>${escapeHTML(post.text)}</p>${post.file?`<div class="file-note">${escapeHTML(post.file)}</div>`:''}${reply}</article>`}).join('')})}
+    function bindPostMediaOpeners(){document.querySelectorAll('[data-open-image]').forEach(el=>{const open=()=>{const [key,index]=el.dataset.openImage.split(':');const post=data.posts[key]?.[Number(index)];if(post?.mediaData)openImageModal(post.mediaData,post.name||'Posted image')};el.onclick=open;el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}}})}
+    function renderPosts(){pageKeys.forEach(key=>{const el=document.getElementById(key+'Posts');if(!el)return;el.innerHTML=(data.posts[key]||[]).map((post,index)=>{const safeName=escapeHTML(post.name||'Someone special');const media=post.mediaData?`<div class="posted-media${String(post.mediaType||'').startsWith('image')?' openable':''}" ${String(post.mediaType||'').startsWith('image')?`data-open-image="${key}:${index}" role="button" tabindex="0" aria-label="Open ${safeName}'s picture"`:''}>${String(post.mediaType||'').startsWith('video')?`<video src="${post.mediaData}" controls></video>`:`<img src="${post.mediaData}" alt="${safeName}'s picture">`}</div>`:`<div class="posted-media empty">${safeName}</div>`;const reply=post.komalReply?`<div class="komal-reply"><div class="komal-reply-label">Komal's Reply</div><div class="komal-reply-text">${escapeHTML(post.komalReply)}</div><button class="reply-send" type="button" onclick="editKomalReply('${key}',${index})">EDIT</button> <button class="reply-send" type="button" onclick="deleteKomalReply('${key}',${index})">DELETE</button></div>`:`<div class="komal-reply"><div class="komal-reply-label">Komal's Reply</div><textarea class="reply-input" data-reply-input="${key}-${index}" placeholder="Write a reply for this message"></textarea><button class="reply-send" type="button" onclick="sendKomalReply('${key}',${index})">SEND</button></div>`;return `<article class="posted-card"><div class="posted-actions"><button class="post-action" type="button" onclick="deletePost('${key}',${index})">Delete</button></div>${media}<h3>${safeName}</h3><p>${escapeHTML(post.text)}</p>${reply}</article>`}).join('')});bindPostMediaOpeners()}
     function renderGateway(){document.querySelector('.welcome-kicker').textContent=data.gateway.kicker||defaultData.gateway.kicker;document.querySelector('.welcome-title').textContent=data.gateway.title||defaultData.gateway.title;document.querySelector('.welcome-quote').textContent=data.gateway.quote||defaultData.gateway.quote;document.querySelector('.welcome-note').textContent=data.gateway.note||defaultData.gateway.note;welcomeBtn.textContent=data.gateway.button||defaultData.gateway.button}
     function renderAll(){homeTitle.textContent='HAPPY BIRTHDAY KOMAL!';homeQuote.textContent=data.homeQuote;renderGateway();renderPageSettings();renderPosts();cards('lettersGrid',data.letters);cards('memoryGrid',data.memory,true);cards('kvGrid',data.kv);applySiteMedia();renderAdmin()}
     function gatewaySettingsEditor(){return `<label>Kicker</label><input data-gateway-setting="kicker" value="${escapeHTML(data.gateway.kicker||'')}"><label>Title</label><input data-gateway-setting="title" value="${escapeHTML(data.gateway.title||'')}"><label>Birthday Quote</label><textarea data-gateway-setting="quote">${escapeHTML(data.gateway.quote||'')}</textarea><label>Small Note</label><textarea data-gateway-setting="note">${escapeHTML(data.gateway.note||'')}</textarea><label>Button Text</label><input data-gateway-setting="button" value="${escapeHTML(data.gateway.button||'')}"><button class="mini save-login" onclick="saveGatewaySettings()">Save</button><p class="note" id="gatewaySettingsStatus"></p>`}
