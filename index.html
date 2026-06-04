@@ -202,10 +202,9 @@
       text-shadow:0 0 10px rgba(255,255,255,.82),0 0 34px rgba(255,211,224,.52),0 0 68px rgba(255,118,158,.3);
     }
     .intro-opened .title{
-      animation:titleReveal 1.35s cubic-bezier(.2,.78,.18,1) both, titleFloat 4.2s ease-in-out 1.35s infinite, titleShine 4.8s linear 1.35s infinite;
+      animation:titleReveal 2.35s cubic-bezier(.16,.84,.22,1) both, titleFloat 5.6s ease-in-out 2.35s infinite, titleShine 6.8s linear 2.35s infinite;
     }
-    .intro-opened .title:before,
-    .intro-opened .title:after{
+    .intro-opened .title:before{
       content:"";
       position:absolute;
       left:50%;
@@ -218,19 +217,11 @@
       width:min(680px,92vw);
       height:2px;
       background:linear-gradient(90deg,transparent,#ffbfd0,#ffe8a8,#ffbfd0,transparent);
-      animation:titleLine 1.45s ease both;
-    }
-    .intro-opened .title:after{
-      bottom:-24px;
-      width:12px;
-      height:12px;
-      background:#fff3c8;
-      box-shadow:-72px 2px 0 -2px #ff9fbc,72px 2px 0 -2px #ff9fbc,-132px -8px 0 -4px #ffe8a8,132px -8px 0 -4px #ffe8a8;
-      animation:titleSparkles 2.1s ease-in-out 1.1s infinite;
+      animation:titleLine 2.2s ease .35s both;
     }
     @keyframes titleReveal{
-      0%{opacity:0;filter:blur(12px) brightness(1.7);letter-spacing:.12em;text-shadow:0 0 6px rgba(255,255,255,.25)}
-      55%{opacity:1;filter:blur(0) brightness(1.2);letter-spacing:.035em;text-shadow:0 0 16px rgba(255,255,255,.9),0 0 48px rgba(255,157,190,.6)}
+      0%{opacity:0;filter:blur(16px) brightness(1.45);letter-spacing:.06em;text-shadow:0 0 6px rgba(255,255,255,.18)}
+      58%{opacity:.82;filter:blur(3px) brightness(1.18);letter-spacing:.032em;text-shadow:0 0 14px rgba(255,255,255,.62),0 0 42px rgba(255,157,190,.42)}
       100%{opacity:1;filter:blur(0) brightness(1);letter-spacing:.018em}
     }
     @keyframes titleFloat{
@@ -242,9 +233,6 @@
     @keyframes titleLine{
       from{opacity:0;clip-path:inset(0 50%)}
       to{opacity:1;clip-path:inset(0)}
-    }
-    @keyframes titleSparkles{
-      50%{transform:translateX(-50%) translateY(-7px) scale(1.18);filter:drop-shadow(0 0 16px rgba(255,222,166,.72))}
     }
 
     main{min-height:100vh}
@@ -2074,6 +2062,28 @@
     data.letters=[];data.memory=[];data.kv=[];
     window.data=data;
 
+    async function loadSeparatePostsFromFirebase(){
+      if(!siteDoc)return;
+      try{
+        const snap=await siteDoc.collection('posts').orderBy('createdAt','desc').get();
+        const grouped={letters:[],memory:[],kv:[]};
+        snap.forEach(doc=>{
+          const post=doc.data()||{};
+          const key=post.page;
+          if(!grouped[key])return;
+          const {page,createdAt,updatedAt,...cleanPost}=post;
+          grouped[key].push({...cleanPost,docId:doc.id});
+        });
+        pageKeys.forEach(key=>{
+          const existing=data.posts[key]||[];
+          const cloudIds=new Set(grouped[key].map(post=>post.id||post.docId));
+          data.posts[key]=[...grouped[key],...existing.filter(post=>!cloudIds.has(post.id||post.docId))];
+        });
+      }catch(err){
+        console.warn('Separate posts load failed. Showing main saved posts.',err);
+      }
+    }
+
     async function loadFromFirebase(){
       if(!siteDoc){
         renderAll();
@@ -2097,8 +2107,9 @@
         }else{
           await siteDoc.set(data);
         }
+        await loadSeparatePostsFromFirebase();
         window.data=data;
-        localStorage.setItem('komalSiteData',JSON.stringify(data));
+        cacheSiteDataLocally();
         renderAll();
       }catch(err){
         console.error('Firebase load failed. Using local copy.',err);
@@ -2140,8 +2151,9 @@
     function removeSongGestureListeners(){songGestureEvents.forEach(eventName=>document.removeEventListener(eventName,primeSongPlayback,songGestureOptions))}
     addSongGestureListeners();
     function replayHomeTitle(){homeTitle.style.animation='none';void homeTitle.offsetWidth;homeTitle.style.animation=''}
+    function activateHomePage(){document.body.classList.remove('admin-open');document.querySelectorAll('.page').forEach(p=>p.classList.remove('active-page'));home.classList.add('active-page');document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page==='home'));document.querySelectorAll('[data-gateway]').forEach(a=>a.classList.remove('active'))}
     function showGateway(){document.body.classList.remove('admin-open');document.body.classList.add('gateway-open');welcomeGate.classList.remove('hide','opening');welcomeGate.setAttribute('aria-hidden','false');void welcomeGate.offsetWidth;document.querySelectorAll('[data-page]').forEach(a=>a.classList.remove('active'));document.querySelectorAll('[data-gateway]').forEach(a=>a.classList.add('active'))}
-    function openWelcomeGate(){primeSongPlayback();welcomeGate.classList.add('opening');document.body.classList.add('intro-opened');document.querySelectorAll('[data-gateway]').forEach(a=>a.classList.remove('active'));document.querySelectorAll('[data-page]').forEach(a=>a.classList.toggle('active',a.dataset.page==='home'));setTimeout(()=>{welcomeGate.classList.add('hide');welcomeGate.setAttribute('aria-hidden','true');document.body.classList.remove('gateway-open');replayHomeTitle()},1650)}
+    function openWelcomeGate(){primeSongPlayback();activateHomePage();welcomeGate.classList.add('opening');document.body.classList.add('intro-opened');setTimeout(()=>{welcomeGate.classList.add('hide');welcomeGate.setAttribute('aria-hidden','true');document.body.classList.remove('gateway-open');replayHomeTitle()},1650)}
     welcomeBtn.onclick=openWelcomeGate;
     function resumeSongWhenAllowed(){if(data.musicEnabled===false||!musicUnlocked)return;if(document.hidden)return;applySiteMedia();primeSongPlayback()}
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)resumeSongWhenAllowed()});
@@ -2160,12 +2172,17 @@
     function openImageModal(src,alt=''){imageModalImg.src=src;imageModalImg.alt=alt;imageModal.classList.remove('hide')}
     function closeImageModal(){imageModal.classList.add('hide');imageModalImg.removeAttribute('src');imageModalImg.alt=''}
     imageModalClose.onclick=closeImageModal;imageModal.onclick=e=>{if(e.target===imageModal)closeImageModal()};
-    function persistPosts(){window.data=data;try{localStorage.setItem('komalSiteData',JSON.stringify(data))}catch(err){console.warn('Local post save failed.',err);return false}if(siteDoc)siteDoc.set({posts:data.posts},{merge:true}).catch(err=>console.warn('Firebase posts save failed. Local copy saved.',err));return true}
-    async function storePostWithAutoCompression(key,post,file){data.posts[key].unshift(post);if(persistPosts())return 'Message posted.';if(file&&String(file.type||'').startsWith('image')){const attempts=[[760,.62],[520,.5],[360,.44]];for(const [max,quality] of attempts){const smaller=await readAttachment(file,max,quality);post.mediaData=smaller?.mediaData||'';post.mediaType=smaller?.mediaType||'';post.file=smaller?.file||post.file;if(persistPosts())return 'Message posted.'}}post.mediaData='';post.mediaType='';if(persistPosts())return 'Message posted.';data.posts[key].shift();return 'Could not save. Try deleting old posts or posting without a file.'}
-    window.deletePost=async function(key,index){if(!await askAdminPassword('Enter admin password to delete this message.'))return;data.posts[key].splice(index,1);persistPosts();renderPosts()}
-    window.sendKomalReply=function(key,index){const input=document.querySelector(`[data-reply-input="${key}-${index}"]`);const text=input?.value.trim();if(!text)return;data.posts[key][index].komalReply=text;persistPosts();renderPosts()}
-    window.editKomalReply=async function(key,index){const current=data.posts[key][index].komalReply||'';const updated=await askText("Edit Reply","Update Komal's reply.",current);if(updated===null)return;data.posts[key][index].komalReply=updated.trim();persistPosts();renderPosts()}
-    window.deleteKomalReply=async function(key,index){if(!await askAdminPassword("Enter admin password to delete Komal's reply."))return;delete data.posts[key][index].komalReply;persistPosts();renderPosts()}
+    function lightweightDataCopy(){const copy={...data,posts:{...data.posts}};Object.keys(copy.posts||{}).forEach(key=>{copy.posts[key]=(copy.posts[key]||[]).map(post=>({...post,mediaData:''}))});return copy}
+    function cacheSiteDataLocally(){try{localStorage.setItem('komalSiteData',JSON.stringify(data));return true}catch(err){console.warn('Full local cache is full. Saving lightweight cache.',err);try{localStorage.setItem('komalSiteData',JSON.stringify(lightweightDataCopy()));return true}catch(cacheErr){console.warn('Lightweight local cache also failed.',cacheErr);return false}}}
+    async function persistPosts(options={}){window.data=data;let cloudOK=!!options.skipCloud;if(siteDoc&&!options.skipCloud){try{await siteDoc.set({posts:data.posts},{merge:true});cloudOK=true}catch(err){console.warn('Firebase posts save failed.',err)}}const localOK=cacheSiteDataLocally();return cloudOK||localOK}
+    async function saveNewPostCloud(key,post){if(!siteDoc)return false;try{const ref=await siteDoc.collection('posts').add({...post,page:key,createdAt:Date.now()});post.docId=ref.id;return true}catch(err){console.warn('Separate post save failed.',err);return false}}
+    async function saveExistingCloudPost(key,post){if(!siteDoc||!post?.docId)return false;try{await siteDoc.collection('posts').doc(post.docId).set({...post,page:key,updatedAt:Date.now()},{merge:true});return true}catch(err){console.warn('Separate post update failed.',err);return false}}
+    async function deleteCloudPost(post){if(!siteDoc||!post?.docId)return false;try{await siteDoc.collection('posts').doc(post.docId).delete();return true}catch(err){console.warn('Separate post delete failed.',err);return false}}
+    async function storePostWithAutoCompression(key,post,file){data.posts[key].unshift(post);if(await saveNewPostCloud(key,post)){await persistPosts({skipCloud:true});return 'Message posted.'}if(await persistPosts())return 'Message posted.';if(file&&String(file.type||'').startsWith('image')){const attempts=[[760,.62],[520,.5],[360,.44]];for(const [max,quality] of attempts){const smaller=await readAttachment(file,max,quality);post.mediaData=smaller?.mediaData||'';post.mediaType=smaller?.mediaType||'';post.file=smaller?.file||post.file;if(await saveNewPostCloud(key,post)){await persistPosts({skipCloud:true});return 'Message posted.'}if(await persistPosts())return 'Message posted.'}}post.mediaData='';post.mediaType='';if(await saveNewPostCloud(key,post)){await persistPosts({skipCloud:true});return 'Message posted.'}if(await persistPosts())return 'Message posted.';data.posts[key].shift();return 'Could not save right now. Please check the internet connection and try again.'}
+    window.deletePost=async function(key,index){if(!await askAdminPassword('Enter admin password to delete this message.'))return;const [post]=data.posts[key].splice(index,1);if(!(await deleteCloudPost(post)))await persistPosts();else await persistPosts({skipCloud:true});renderPosts()}
+    window.sendKomalReply=async function(key,index){const input=document.querySelector(`[data-reply-input="${key}-${index}"]`);const text=input?.value.trim();if(!text)return;data.posts[key][index].komalReply=text;if(!(await saveExistingCloudPost(key,data.posts[key][index])))await persistPosts();else await persistPosts({skipCloud:true});renderPosts()}
+    window.editKomalReply=async function(key,index){const current=data.posts[key][index].komalReply||'';const updated=await askText("Edit Reply","Update Komal's reply.",current);if(updated===null)return;data.posts[key][index].komalReply=updated.trim();if(!(await saveExistingCloudPost(key,data.posts[key][index])))await persistPosts();else await persistPosts({skipCloud:true});renderPosts()}
+    window.deleteKomalReply=async function(key,index){if(!await askAdminPassword("Enter admin password to delete Komal's reply."))return;delete data.posts[key][index].komalReply;if(!(await saveExistingCloudPost(key,data.posts[key][index])))await persistPosts();else await persistPosts({skipCloud:true});renderPosts()}
     document.querySelectorAll('.post-area').forEach(area=>{const toggle=area.querySelector('.post-toggle');const box=area.querySelector('.message-box');const close=area.querySelector('.message-close');const submit=area.querySelector('.post-submit');const status=area.querySelector('.post-status');toggle.onclick=()=>{box.classList.toggle('open');if(box.classList.contains('open'))box.querySelector('input')?.focus()};close.onclick=()=>box.classList.remove('open');submit.onclick=async()=>{const key=area.dataset.postPage;const name=box.querySelector('input[type="text"]').value.trim()||'Someone special';const text=box.querySelector('textarea').value.trim();const file=box.querySelector('input[type="file"]').files[0];if(!text){status.textContent='Write a message first.';return}status.textContent='Posting...';submit.disabled=true;try{let attachment=await readAttachment(file);data.posts[key]=data.posts[key]||[];const post={id:Date.now(),name,text,file:attachment?.file||'',mediaData:attachment?.mediaData||'',mediaType:attachment?.mediaType||''};const savedMessage=await storePostWithAutoCompression(key,post,file);status.textContent=attachment?.note||savedMessage;renderPosts();box.querySelectorAll('input,textarea').forEach(el=>{el.value=''})}catch(err){console.error('Post failed.',err);status.textContent='Could not post. Try again with a smaller image.'}finally{submit.disabled=false}}});
     loginBtn.onclick=()=>{if(username.value.trim().toUpperCase()===(data.adminUsername||'ADMIN').toUpperCase()&&password.value===(data.password||'1234')){sessionStorage.setItem('adminOK','1');loginScreen.classList.add('hide');loginError.textContent='';showPage('admin')}else loginError.textContent='Wrong username or password.'};password.onkeydown=e=>{if(e.key==='Enter')loginBtn.click()};username.onkeydown=e=>{if(e.key==='Enter')password.focus()};signOut.onclick=()=>{sessionStorage.removeItem('adminOK');showPage('home')};
     function nextJune5(){const now=new Date();let y=now.getFullYear();let target=new Date(y,5,5,0,0,0);if(now>=target)target=new Date(y+1,5,5,0,0,0);return target}function tick(){let d=nextJune5()-new Date();days.textContent=String(Math.floor(d/86400000)).padStart(2,'0');hours.textContent=String(Math.floor(d/3600000)%24).padStart(2,'0');minutes.textContent=String(Math.floor(d/60000)%60).padStart(2,'0');seconds.textContent=String(Math.floor(d/1000)%60).padStart(2,'0')}setInterval(tick,1000);tick();
